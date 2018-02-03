@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="frontend.js"></script>
+  </head>
+  <body>
+    <div class="flex">
+      <div class="chat">
+        <ul id="messages"></ul>
+        <form action="">
+          <input id="m" autocomplete="off" /><button>Send</button>
+        </form>
+      </div>
+      
+        
+        
+      <div class="pdf" id="pdf">
+
+      </div>
+      <div class="tools">
+        <button id="next">
+            Nächste Seite!
+        </button>
+        <button id="previous">
+            Vorherige Seite!
+        </button>
+
+        <button id="button">Open</button>
+        <input id="file-input" type="file" name="name" accept="pdf" style="display: none;" />
+      </div>
+      
+      
+      
+      
+    </div>
+    <div id="p"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io();
+</script>
+  </body>
+</html>
+    

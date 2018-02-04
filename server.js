@@ -49,13 +49,21 @@ io.on('connection', function(socket){
               socket.emit('chat message',"  " + element);
             });       
           }
+          //Zeige alle Admins
+          if(msg.indexOf("/kick") == 0){
+            var n = msg.split(" ");   
+            console.log(names.find(e => e.name === n).id);
+
+            }           
+          }
+
+
           if(msg == "/list Admins"){
             socket.emit('chat message', "There is " + operators.length + " Admins:");
             operators.forEach(element => {
               socket.emit('chat message',"  " + element);
             });       
           }
-
 
 
           if(msg == "/help"){

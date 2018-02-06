@@ -16,8 +16,8 @@ app.use(express.static(path.resolve('./node_modules')));
 const port = 3000;
 
 server.listen(port, () => {
-  d('listening on *:%d', port);
-  d('Lets get shit going...');
+  console.log('listening on *:%d', port);
+  console.log('Lets get shit going...');
 });
 
 const sentmessages = [];
@@ -116,14 +116,18 @@ const userUtils = {
   },
 
   isNameTaken: (name) => {
+    let res = false;
     users.forEach((u) => {
-      if (u.name == name) {
+      if (u.name.toLowerCase() == name.toLowerCase()) {
+        res = true;
         return true;
       }
     });
-    return false;
+    return res;
   },
 };
+
+const srv = 'server message';
 
 io.on('connection', (socket) => {
   // Benutzer Speichern
@@ -136,9 +140,10 @@ io.on('connection', (socket) => {
   });
 
   // Willkommens Nachticht bei Join
-  socket.emit('chat message', 'Willkommen im Chat!');
-  socket.emit('chat message', 'Benutze /help für Hilfe!');
-  socket.emit('chat message', 'Benutze /name (name) um dir einen Namen zu geben!');
+  socket.emit(srv, 'Willkommen im Chat!');
+  socket.broadcast.emit(srv,'Benutzer verbunden!');
+  socket.emit(srv, 'Benutze /help für Hilfe!');
+  socket.emit(srv, 'Benutze /name (name) um dir einen Namen zu geben!');
 
   // Verwalte Chat Nachrichten
   socket.on('chat message', (msg) => {
@@ -146,7 +151,7 @@ io.on('connection', (socket) => {
 
     let hasName = false;
     let isAdmin = false;
-
+    
     // User hat name!
     if (userUtils.userHasName(socket.id)) hasName = true;
     // Benutzer ist Admin
@@ -154,43 +159,85 @@ io.on('connection', (socket) => {
 
     // Kommandos abfangen
     switch (msg.split(' ')[0]) {
-    case '/help':
+    case '/help' || '/hilfe':
       if (isAdmin) {
-        socket.emit('chat message', 'Admin Tools:');
-        socket.emit('chat message', 'Benutze /list Admins um alle Admins zu zeigen!');
-        socket.emit('chat message', 'Benutze /kick (Name) um einen User zu kicken!');
-        socket.emit('chat message', 'Benutze /ping (Name) um einem User das Pingen zu ermöglichen!');
-        socket.emit('chat message', 'Benutze /unset Admin um dich selbst als Admin zu entfernen!');
-        socket.emit('chat message', 'Benutze /rename (name) (newname) um einen Benutzer umzubenennen!');
+        socket.emit(srv, 'Admin Tools:');
+        socket.emit(srv, 'Benutze /list Admins um alle Admins zu zeigen!');
+        socket.emit(srv, 'Benutze /kick (Name) um einen User zu kicken!');
+        socket.emit(srv, 'Benutze /ping (Name) um einem User das Pingen zu ermöglichen!');
+        socket.emit(srv, 'Benutze /unset Admin um dich selbst als Admin zu entfernen!');
+        socket.emit(srv, 'Benutze /rename (name) (newname) um einen Benutzer umzubenennen!');
       }
 
       if (hasName) {
-        socket.emit('chat message', 'User Tools:');
-        socket.emit('chat message', 'Benutze /name (name) um deinen Namen zu setzen!');
+        socket.emit(srv, 'User Tools:');
+        socket.emit(srv, 'Benutze /name (name) um deinen Namen zu setzen!');
       }
 
-      socket.emit('chat message', 'Benutze /change name um deinen Namen zu ändern!');
+      socket.emit(srv, 'Benutze /change name um deinen Namen zu ändern!');
       return;
 
     case '/name':
-      if (userUtils.userExists(msg.split(' ')[1])) {
-        socket.emit('chat message', 'Dieser Nutzername ist nicht verfügbar!');
+      if (userUtils.isNameTaken(msg.split(' ')[1])) {
+        socket.emit(srv, 'Dieser Nutzername ist nicht verfügbar!');
         return;
       }
 
       userUtils.getUserById(socket.id).name = msg.split(' ')[1];
 
       d('%s set username to %s', socket.id, userUtils.getUserById(socket.id).name);
-      socket.emit('chat message', 'Du heißt nun ' + userUtils.getUserById(socket.id).name+' !');
+      socket.emit(srv, 'Du heißt nun ' + userUtils.getUserById(socket.id).name+' !');
       return;
+    case '/setAdmin':
+      if (hasName){
+        users[userUtils.getIndexById(socket.id)].isAdmin = true;
+        socket.emit('make admin',true);
+        return;
+      }  
+    case '/unsetAdmin':
+      if (hasName){
+        users[userUtils.getIndexById(socket.id)].isAdmin = false;
+        socket.emit('make admin',false);
+        return;
+      }  
+    case '/frage':
+      if(hasName){
+        let frage = msg.substring(6,msg.lenght);
+        users.forEach(user => {
+          if(user.isAdmin){
+            io.to(user.id).emit('question','Frage von ' + userUtils.getUserNameById(socket.id)+ ':');
+            io.to(user.id).emit('question',frage);
+          }
+        });
+        return;
+      }
+    case '/kick':
+      if(isAdmin){
+        let uname = msg.substring(6,msg.lenght);
+        console.log(uname);
+        if(userUtils.isNameTaken(uname)){
+          io.to(userUtils.getUserIdByName(uname)).emit('disco',1);
+          users.forEach(user => {
+            if(user.isAdmin){
+              io.to(user.id).emit('question',userUtils.getUserNameById(socket.id) + " kickte " + uname);
+            }
+          });
+        }
+        else{
+          socket.emit(srv,'Kick nicht möglich, da es diesen Namen nicht gibt!');
+        }
+        return;
+      }  
+
     }
 
     if (msg.charAt(0) === '/') {
-      socket.emit('chat message', 'Befehl gibts nicht.');
+      socket.emit(srv, 'Befehl nicht gefunden! Für weitere Hilfe bitte /help benutzen!');
+      return;
     }
 
     if (!hasName) {
-      socket.emit('chat message', 'Benutze /name (name) um deinen Namen zu setzen!');
+      socket.emit(srv, 'Benutze /name (name) um deinen Namen zu setzen!');
       return;
     }
 
@@ -215,8 +262,27 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
-    d('user disconnected');
-    io.emit('chat message', 'Benutzer getrennt');
+  socket.on('disconnect', (t) => {
+    if(t){
+      users.forEach(user => {
+        if(user.isAdmin){
+          io.to(user.id).emit('question',"Kick Erfolgreich!");
+        }
+      });
+    }
+    else{
+      d('user disconnected');
+      if(userUtils.userHasName(socket.id)){
+        socket.broadcast.emit(srv,userUtils.getUserNameById(socket.id) + ' hatt den Raum verlassen!');
+      }
+      else{
+        io.emit(srv, 'Benutzer hatt den Raum verlassen');
+      }
+    }
+      users.splice(userUtils.getIndexById(socket.id),1); 
   });
+
+  socket.on('force disco', function(t){
+    socket.disconnect(t);
+});
 });

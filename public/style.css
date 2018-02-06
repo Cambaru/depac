@@ -26,7 +26,15 @@ form button { width: 10%; background: rgb(130, 224, 255); border: none; padding:
     background-color: rosybrown;
     min-width: 50%;   
 }
-
+.adminmsg{
+    color:red;
+}
+.qmsg{
+    color:rgb(0, 145, 0);
+}
+.srvmsg{
+    color:blue;
+}
 .tools{
     background-color: gray;
     visibility: hidden;

@@ -24,11 +24,29 @@ $(document).ready(function() {
   // Get Message from Server
   socket.on('make admin', function(t) {
     console.log('I get called!');
-    $('.tools').css('visibility', 'visible');
+    if (t) {
+      $('.tools').css('visibility', 'visible');
+    }
+    else{
+      $('.tools').css('visibility', 'hidden');
+    }
   });
 
   socket.on('chat message', function(msg) {
     $('#messages').append($('<li>').text(msg));
+  });
+  socket.on('admin message', function(msg) {
+    $('#messages').append($('<li class="adminmsg">').text(msg));
+  });
+  socket.on('server message', function(msg) {
+    $('#messages').append($('<li class="srvmsg">').text('Server: ' + msg));
+  });
+  socket.on('question', function(msg) {
+    $('#messages').append($('<li class="qmsg">').text(msg));
+  });
+
+  socket.on('disco', function(msg) {
+    socket.emit('force disco',true);
   });
 
   socket.on('ping map', function(ping) {
